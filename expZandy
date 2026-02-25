@@ -1,0 +1,341 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>expZandy Pig Clicker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #ffe6f2;
+            --primary-color: #ff66b2;
+            --text-color: #d63384;
+            --dead-color: #808080;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Fredoka One', cursive;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .header {
+            font-size: 3rem;
+            color: var(--text-color);
+            text-shadow: 2px 2px 0px #fff;
+            margin-bottom: 20px;
+            z-index: 10;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .score-board {
+            font-size: 2rem;
+            color: #555;
+            background: white;
+            padding: 10px 30px;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .game-area {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .pig-container {
+            cursor: pointer;
+            transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+
+        .pig-container:active {
+            transform: scale(0.9);
+        }
+
+        .pig-container.dead {
+            filter: grayscale(100%) brightness(0.7);
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .pig-svg {
+            width: 100%;
+            height: 100%;
+            drop-shadow: 0 10px 15px rgba(0,0,0,0.15);
+        }
+
+        /* Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        .shake-anim {
+            animation: shake 0.5s;
+        }
+
+        .pop-text {
+            position: absolute;
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            pointer-events: none;
+            animation: popUp 1s forwards;
+            font-weight: bold;
+        }
+
+        @keyframes popUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.5); }
+        }
+
+        .status-msg {
+            margin-top: 20px;
+            height: 30px;
+            color: var(--text-color);
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        .respawn-timer {
+            font-size: 1.5rem;
+            color: #d63384;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">expZandy</div>
+    
+    <div class="score-board">
+        Клик: <span id="score">0</span>
+    </div>
+
+    <div class="game-area">
+        <div class="pig-container" id="pigBtn">
+            <!-- SVG Pig Generated Inline -->
+            <svg class="pig-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <!-- Ears -->
+                <path d="M40 60 Q20 20 60 40 Z" fill="#ff99cc" stroke="#ff66b2" stroke-width="3"/>
+                <path d="M160 60 Q180 20 140 40 Z" fill="#ff99cc" stroke="#ff66b2" stroke-width="3"/>
+                
+                <!-- Body -->
+                <ellipse cx="100" cy="110" rx="80" ry="70" fill="#ffb3d9" stroke="#ff66b2" stroke-width="4"/>
+                
+                <!-- Snout -->
+                <ellipse cx="100" cy="120" rx="35" ry="25" fill="#ff80bf" stroke="#e60073" stroke-width="2"/>
+                <circle cx="85" cy="115" r="6" fill="#99004d"/>
+                <circle cx="115" cy="115" r="6" fill="#99004d"/>
+                
+                <!-- Eyes -->
+                <g id="eyes-group">
+                    <circle cx="70" cy="80" r="8" fill="white" stroke="#333" stroke-width="2"/>
+                    <circle cx="70" cy="80" r="3" fill="black"/>
+                    <circle cx="130" cy="80" r="8" fill="white" stroke="#333" stroke-width="2"/>
+                    <circle cx="130" cy="80" r="3" fill="black"/>
+                </g>
+
+                <!-- Dead Eyes (Hidden by default) -->
+                <g id="dead-eyes-group" style="display: none;">
+                    <path d="M60 75 L80 85 M80 75 L60 85" stroke="black" stroke-width="4" stroke-linecap="round"/>
+                    <path d="M120 75 L140 85 M140 75 L120 85" stroke="black" stroke-width="4" stroke-linecap="round"/>
+                </g>
+
+                <!-- Legs -->
+                <ellipse cx="60" cy="170" rx="15" ry="10" fill="#ff99cc"/>
+                <ellipse cx="140" cy="170" rx="15" ry="10" fill="#ff99cc"/>
+                <ellipse cx="80" cy="175" rx="12" ry="8" fill="#ff99cc"/>
+                <ellipse cx="120" cy="175" rx="12" ry="8" fill="#ff99cc"/>
+            </svg>
+        </div>
+    </div>
+
+    <div class="status-msg" id="statusMsg"></div>
+    <div class="respawn-timer" id="timerMsg">Возрождение через: <span id="countdown">5</span></div>
+
+    <script>
+        // Game State
+        let score = 0;
+        let isDead = false;
+        let audioCtx = null;
+
+        // DOM Elements
+        const pigBtn = document.getElementById('pigBtn');
+        const scoreEl = document.getElementById('score');
+        const statusMsg = document.getElementById('statusMsg');
+        const timerMsg = document.getElementById('timerMsg');
+        const countdownEl = document.getElementById('countdown');
+        const eyesGroup = document.getElementById('eyes-group');
+        const deadEyesGroup = document.getElementById('dead-eyes-group');
+
+        // Audio Synthesis (No external files needed)
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playGrunt(loud = false) {
+            if (!audioCtx) return;
+            
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            // Sound design for a grunt
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(loud ? 150 : 250, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.2);
+            
+            gainNode.gain.setValueAtTime(loud ? 0.5 : 0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+        }
+
+        function playDeathSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(20, audioCtx.currentTime + 1);
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 1);
+        }
+
+        // Visual Effects
+        function createPopText(x, y, text) {
+            const el = document.createElement('div');
+            el.classList.add('pop-text');
+            el.innerText = text;
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        function handleDeath() {
+            isDead = true;
+            pigBtn.classList.add('dead');
+            playDeathSound();
+            
+            // Visual changes for death
+            eyesGroup.style.display = 'none';
+            deadEyesGroup.style.display = 'block';
+            
+            statusMsg.innerText = "О нет! Свинка умерла...";
+            timerMsg.style.display = 'block';
+            
+            let timeLeft = 5;
+            countdownEl.innerText = timeLeft;
+
+            const interval = setInterval(() => {
+                timeLeft--;
+                countdownEl.innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(interval);
+                    respawnPig();
+                }
+            }, 1000);
+        }
+
+        function respawnPig() {
+            score = 0;
+            scoreEl.innerText = score;
+            isDead = false;
+            pigBtn.classList.remove('dead');
+            timerMsg.style.display = 'none';
+            statusMsg.innerText = "";
+            
+            // Reset visuals
+            eyesGroup.style.display = 'block';
+            deadEyesGroup.style.display = 'none';
+        }
+
+        // Main Click Handler
+        pigBtn.addEventListener('click', (e) => {
+            if (isDead) return;
+            
+            initAudio(); // Ensure audio context is ready on first interaction
+            
+            score++;
+            scoreEl.innerText = score;
+
+            // Visual feedback
+            const rect = pigBtn.getBoundingClientRect();
+            // Randomize position slightly around click
+            const randomX = (Math.random() - 0.5) * 40;
+            const randomY = (Math.random() - 0.5) * 40;
+            createPopText(e.clientX + randomX, e.clientY + randomY, "+1");
+
+            // Logic Checks
+            
+            // 1. Loud Grunt at 100
+            if (score === 100) {
+                playGrunt(true);
+                pigBtn.classList.add('shake-anim');
+                statusMsg.innerText = "ОЧЕНЬ ГРОМКОЕ ХРЮ!";
+                setTimeout(() => pigBtn.classList.remove('shake-anim'), 500);
+                setTimeout(() => statusMsg.innerText = "", 2000);
+            }
+            // 2. Death at 200
+            else if (score === 200) {
+                handleDeath();
+            }
+            // 3. Normal Grunt every 10 clicks (excluding 100 and 200)
+            else if (score % 10 === 0 && score !== 100 && score !== 200) {
+                playGrunt(false);
+                // Small visual cue for grunt
+                const originalTransform = pigBtn.style.transform;
+                pigBtn.style.transform = "scale(1.05)";
+                setTimeout(() => pigBtn.style.transform = originalTransform, 100);
+            }
+        });
+
+    </script>
+</body>
+</html>
+```
